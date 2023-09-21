@@ -1,3 +1,3 @@
 rmdir dist /s /q
 rmdir build /s /q
-pyinstaller Launcher.py --name Shishi-odoshi --onefile -w
+pyinstaller Launcher.py --icon=resources/image/shishi-odoshi.ico --name Shishi-odoshi --onefile -w --add-data "resources;resources"

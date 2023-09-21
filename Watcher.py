@@ -4,35 +4,36 @@ import time
 import numpy as np
 import pygame
 
+from Assets import getAssetPath
 from Screenshot import Screenshot
-
-CORNER_MARGIN = 100  # Define the margin size to exclude from comparison
-
 
 class Watcher:
     def __init__(self):
+        self.thread = None
         self.screenNumber = None
         self.screenShotTool = Screenshot()
-        self.running = False
         self.prev_screenshot = None
         self.lastActivityTime = None
         self.checkActivity = False #True for activity checkin and False for Inactivity checking
         self.intervalSecond = 10
         self.tolerancePixel = 100
+        self.stop_event = threading.Event()
 
     def play_sound(self):
-        pygame.mixer.music.load("resources/audio/shishi-odoshi-sound.mp3")
+        pygame.mixer.music.load(getAssetPath("resources/audio/shishi-odoshi-sound.mp3"))
         pygame.mixer.music.play()
 
     def start(self,screenNumber):
         self.lastActivityTime = time.time()
         self.running = True
         self.screenNumber = screenNumber
-        thread = threading.Thread(target=self.watch_loop)
-        thread.start()
+        self.stop_event.clear()
+        self.thread = threading.Thread(target=self.watch_loop)
+        self.thread.start()
 
     def stop(self):
-        self.running = False
+        self.stop_event.set()
+        self.thread.join()  # Wait for the thread to actually stop
         self.lastActivityTime = None
 
     @staticmethod
@@ -40,19 +41,19 @@ class Watcher:
         arr1 = np.array(img1)
         arr2 = np.array(img2)
 
-        # Exclude the top-left and top-right corners
-        arr1[:CORNER_MARGIN, :CORNER_MARGIN] = 0
-        arr1[:CORNER_MARGIN, -CORNER_MARGIN:] = 0
-        arr2[:CORNER_MARGIN, :CORNER_MARGIN] = 0
-        arr2[:CORNER_MARGIN, -CORNER_MARGIN:] = 0
+        # Exclude the bottom 6% of both images
+        exclude_height = int(0.06 * arr1.shape[0])
+        arr1[-exclude_height:, :] = 0
+        arr2[-exclude_height:, :] = 0
 
         diff = np.abs(arr1 - arr2)
         diffNumber = np.count_nonzero(diff > 0)
         print("Diff compute result :" + str(diffNumber))
         return diffNumber
 
+
     def watch_loop(self):
-        while self.running:
+        while not self.stop_event.is_set():
             current_screenshot = self.screenShotTool.capture(self.screenNumber)
 
             if self.prev_screenshot:
@@ -74,4 +75,5 @@ class Watcher:
                         self.lastActivityTime = time.time()
 
             self.prev_screenshot = current_screenshot
-            time.sleep(self.intervalSecond)
+            # This will either sleep for self.intervalSecond or until stop_event is set.
+            self.stop_event.wait(self.intervalSecond)

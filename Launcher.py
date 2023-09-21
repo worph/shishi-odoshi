@@ -1,12 +1,17 @@
+import sys
 import time
 import tkinter as tk
 from tkinter import ttk, font
 
 import pygame
 from PIL import Image, ImageTk, ImageDraw
+from pystray import MenuItem as item, Icon as icon
 
+from Assets import getAssetPath
 from Screenshot import Screenshot
 from Watcher import Watcher
+
+import threading
 
 
 class Application:
@@ -22,12 +27,25 @@ class Application:
         self.labelImg = None
         self.intervalVar = tk.StringVar(value="10")  # default value of 10 seconds
         self.setup_gui()
+        self.create_tray_icon()
+        # Bind the close window event to exit_app
+        self.root.protocol("WM_DELETE_WINDOW", self.exit_app)
 
     @staticmethod
     def round_corners(image, radius):
         mask = Image.new('L', image.size, 0)
         ImageDraw.Draw(mask).rounded_rectangle([(0, 0), image.size], radius=radius, fill=255)
         return Image.composite(image, Image.new('RGBA', image.size, (0, 0, 0, 0)), mask)
+
+    def create_tray_icon(self):
+        image = Image.open(getAssetPath('resources/image/shishi-odoshi.png'))
+        menu = (
+            item('Open', self.show_window),
+            item('Exit', self.exit_app)
+        )
+
+        self.tray = icon("Shishi Odoshi", image, "Shishi Odoshi", menu)
+        threading.Thread(target=self.tray.run, daemon=True).start()
 
     def setup_gui(self):
         self.root.title("Shishi Odoshi")
@@ -38,6 +56,10 @@ class Application:
         self.root.geometry(f'{self.windowWidth}x{self.windowHeight}')
         self.root.resizable(False, False)
         self.root.configure(bg='#FFFFFF')
+        self.root.iconbitmap(getAssetPath('resources/image/shishi-odoshi.ico'))  # Set the icon for the window
+
+        # Bind the event when the window is minimized
+        self.root.bind("<Unmap>", lambda e: self.hide_window() if self.root.state() == 'iconic' else None)
 
         # Custom font for titles
         regular_font = font.Font(size=11)
@@ -104,7 +126,7 @@ class Application:
         self.watcher.intervalSecond = int(self.intervalVar.get())
 
     def resetImage(self):
-        image_url = "resources/image/shishi-odoshi.gif"
+        image_url = getAssetPath("resources/image/shishi-odoshi.gif")
         innerWidth = int(self.windowWidth * 0.8)
         image = Image.open(image_url).resize((innerWidth, int(innerWidth*(9/16))))
         image = self.round_corners(image, 10)
@@ -134,6 +156,19 @@ class Application:
         if self.watcher.lastActivityTime:
             self.displaySceenShot()
         self.root.after(int(self.intervalVar.get()) * 1000, self.updateScreenshotLabel)
+
+    def show_window(self, icon, item):
+        self.root.deiconify()
+
+    def hide_window(self):
+        self.root.withdraw()
+
+    def exit_app(self, icon=None, item=None):
+        if self.tray:
+            self.tray.stop()
+        self.watcher.stop()
+        self.root.quit()
+        #sys.exit()
 
     def updateTimeLabel(self):
         if self.watcher.lastActivityTime:

@@ -3,6 +3,4 @@ venv/
 __pycache__
 *.orig
 build
-dist
-*.spec
 .idea
