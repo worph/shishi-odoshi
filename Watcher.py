@@ -19,8 +19,9 @@ class Watcher:
         self.tolerancePixel = 100
         self.stop_event = threading.Event()
 
-    def play_sound(self):
+    def play_sound(self, volume=0.6):
         pygame.mixer.music.load(getAssetPath("resources/audio/shishi-odoshi-sound.mp3"))
+        pygame.mixer.music.set_volume(volume)
         pygame.mixer.music.play()
 
     def start(self,screenNumber):
@@ -30,6 +31,7 @@ class Watcher:
         self.stop_event.clear()
         self.thread = threading.Thread(target=self.watch_loop)
         self.thread.start()
+        self.play_sound() #play music to serve as a sound check and start confirmation
 
     def stop(self):
         self.stop_event.set()
@@ -61,17 +63,17 @@ class Watcher:
                     #chek for screen activity (notify when the screen is active)
                     # a screen is active when two consecutive screenshot are different
                     if self.computeDifferences(current_screenshot, self.prev_screenshot) > self.tolerancePixel:
-                        print("SIGNIFICANT screen change detected. Ringing the bell!")
                         self.checkActivity = False # switch to checking inactivity
-                        self.play_sound()
+                        #self.play_sound()
+                        #print("SIGNIFICANT screen change detected. Ringing the bell!")
                         self.lastActivityTime = time.time()
                 else:
                     #chek for inactivity (notify when the screen is inactive)
                     #A screen is incative when 2 consecutive screenshot are the same
                     if self.computeDifferences(current_screenshot, self.prev_screenshot) < self.tolerancePixel:
-                        print("NO significant screen change detected. Ringing the bell!")
                         self.checkActivity = True #switch to checking activity
                         self.play_sound()
+                        print("NO significant screen change detected. Ringing the bell!")
                         self.lastActivityTime = time.time()
 
             self.prev_screenshot = current_screenshot

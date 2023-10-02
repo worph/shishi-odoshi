@@ -1,4 +1,3 @@
-import sys
 import time
 import tkinter as tk
 from tkinter import ttk, font
@@ -25,7 +24,7 @@ class Application:
         self.screen_dropdown = None  # to be defined in setup_gui
         self.is_watching = False
         self.labelImg = None
-        self.intervalVar = tk.StringVar(value="10")  # default value of 10 seconds
+        self.intervalVar = tk.StringVar(value="30")  # default value of 10 seconds
         self.setup_gui()
         self.create_tray_icon()
         # Bind the close window event to exit_app
